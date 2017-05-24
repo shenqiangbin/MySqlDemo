@@ -12,8 +12,10 @@ namespace MySqlDemo
     {
         static void Main(string[] args)
         {
-            string str = "server=127.0.0.1;database=ThesisMgmt;Uid=root;Pwd=123456;";//
-            str = "server=192.168.103.90;database=ThesisMgmt;Uid=root;Pwd=123456;";
+            string str = "server=127.0.0.1;database=ThesisMgmt;Uid=root;Pwd=123456;";
+
+            //注意：链接字符串要小写。
+            str = "server=192.168.103.90;database=thesismgmt;Uid=thesismgmt;Pwd=123456;";
             using (MySqlConnection conn = new MySqlConnection(str))
             {
                 if (conn.State != ConnectionState.Open)
