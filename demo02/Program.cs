@@ -13,13 +13,46 @@ namespace demo02
         // 参考地址：http://www.cnblogs.com/Sinte-Beuve/p/4231053.html
         static void Main(string[] args)
         {
-            var str = "server=192.168.103.90;database=thesismgmt;Uid=thesismgmt;Pwd=123456;";
+            var str = "server=127.0.0.1;database=thesisdb;Uid=root;Pwd=123456;";
             var conn = new MySqlConnection(str);
-            var list = conn.Query("SELECT * FROM thesismgmt.user;");
 
-            foreach (var item in list)
+            //增
+            string sql = "insert user(usercode,username,password) values(@usercode,@username,@password);SELECT LAST_INSERT_ID();";
+            User user = new User { UserCode = "sa2", UserName = "管理员", Password = "123456" };
+            //var id = conn.ExecuteScalar<int>(sql, user);
+
+            //删
+
+            //改
+            sql = "update user set usercode = @usercode,username= @username,password=@password where userid = @userid";
+            user = new User { UserId = 2, UserCode = "stu2", UserName = "haha", Password = "123" };
+            conn.Execute(sql, user);
+
+            //查
+
+            //查全部
+            IEnumerable<User> list = conn.Query<User>("select * from user");
+            //根据Id查
+            var userid = 2;
+            var selectUser = conn.QueryFirstOrDefault<User>("select * from user where userid = @userId", new { userid = userid });
+
+            //分页查询
+
+            //事务
+            var tran = conn.BeginTransaction();
+            try
             {
-                var s = item;
+                sql = "update user set usercode = @usercode,username= @username,password=@password where userid = @userid";
+                string sql1 = "update user set usercode = @usercode,username= @username,password=@password where userid = @userid";
+                conn.Execute(sql, "", tran);
+                conn.Execute(sql1, "", tran);
+
+                tran.Commit();
+            }
+            catch (Exception ex)
+            {
+                tran.Rollback();
+                throw ex;
             }
 
             Console.ReadKey();
