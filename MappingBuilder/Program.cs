@@ -122,7 +122,7 @@ namespace MappingBuilder
                 case "int":
                     return "int";
                 case "datetime":
-                    return "datetime";
+                    return "DateTime";
                 case "varchar":
                     return "string";
                 default:
