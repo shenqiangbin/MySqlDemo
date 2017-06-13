@@ -55,6 +55,11 @@ namespace demo02
                 throw ex;
             }
 
+
+            UserRepository userRepository = new UserRepository();
+            //userRepository.SelectBy();
+            //userRepository.SelectInfoBy<User>("");
+
             Console.ReadKey();
         }
     }
