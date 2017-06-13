@@ -23,8 +23,9 @@ namespace MappingBuilder
             var infoText = GetColumnsInfo(tableName);
             var text = GetMappingText(tableName);
             var classText = GenerateClass(tableName);
+            var saveClassText = GenerateSaveModelClass(tableName);
 
-            WriteTmpFileAndOpen(infoText + "\r\n" + text + "\r\n" + classText);
+            WriteTmpFileAndOpen(infoText + "\r\n" + text + "\r\n" + classText + "\r\n" + saveClassText);
         }
 
         static string GetMappingText(string tableName)
@@ -60,6 +61,35 @@ namespace MappingBuilder
                 Column col = columns.ElementAt(i);
                 builder.AppendLine(col.GeneratePropertyString());
             }
+
+            builder.AppendLine("}");
+            return builder.ToString();
+        }
+
+        static string GenerateSaveModelClass(string tableName)
+        {
+            IEnumerable<Column> columns = GetTableColumns(tableName);
+
+            StringBuilder builder = new StringBuilder();
+            builder.AppendLine($"public class {tableName}SaveModel");
+            builder.AppendLine("{");
+            for (int i = 0; i < columns.Count(); i++)
+            {
+                Column col = columns.ElementAt(i);
+                builder.AppendLine("    " + col.GenerateSavePropertyString());
+            }
+            builder.AppendLine("");
+            builder.AppendLine($"    public void SetValTo({tableName} model)");
+            builder.AppendLine("    {");
+            for (int i = 0; i < columns.Count(); i++)
+            {
+                Column col = columns.ElementAt(i);
+                if (col.GenerateSavePropertyString().Contains("?"))
+                    builder.AppendLine($"       model.{col.ColumnName} = {col.ColumnName} != null ? {col.ColumnName}.Value : model.{col.ColumnName};");
+                else
+                    builder.AppendLine($"       model.{col.ColumnName} = {col.ColumnName} != null ? {col.ColumnName} : model.{col.ColumnName};");
+            }
+            builder.AppendLine("    }");
 
             builder.AppendLine("}");
             return builder.ToString();
@@ -123,6 +153,26 @@ namespace MappingBuilder
                     return "int";
                 case "datetime":
                     return "DateTime";
+                case "varchar":
+                    return "string";
+                default:
+                    return "string";
+            }
+        }
+
+        public string GenerateSavePropertyString()
+        {
+            return string.Format("public {0} {1} {{ get; set; }}", GetSaveDataTypeString(), ColumnName);
+        }
+
+        private string GetSaveDataTypeString()
+        {
+            switch (DataType)
+            {
+                case "int":
+                    return "int?";
+                case "datetime":
+                    return "DateTime?";
                 case "varchar":
                     return "string";
                 default:
