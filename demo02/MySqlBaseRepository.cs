@@ -75,6 +75,16 @@ namespace demo02
             IEnumerable<Column> list = GetConn().Query<Column>(sql);
             return list;
         }
+
+        private string GetSqlByDic(Dictionary<string, string> dic, string seprator)
+        {
+            List<string> list = new List<string>();
+            foreach (var item in dic)
+            {
+                list.Add(string.Format(" {0}='{1}' ", item.Key, item.Value));
+            }
+            return string.Join(seprator, list.ToArray());
+        }
     }
 
     public class Column
