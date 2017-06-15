@@ -13,6 +13,14 @@ namespace demo02
         // 参考地址：http://www.cnblogs.com/Sinte-Beuve/p/4231053.html
         static void Main(string[] args)
         {
+            //TestDapper();
+            TestRepository();
+
+            Console.ReadKey();
+        }
+
+        static void TestDapper()
+        {
             var str = "server=127.0.0.1;database=thesisdb;Uid=root;Pwd=123456;";
             var conn = new MySqlConnection(str);
 
@@ -25,7 +33,7 @@ namespace demo02
 
             //改
             sql = "update user set usercode = @usercode,username= @username,password=@password where userid = @userid";
-            user = new User { UserId = 2, UserCode = "stu2", UserName = "haha", Password = "123" };
+            user = new User { Id = 2, UserCode = "stu2", UserName = "haha", Password = "123" };
             conn.Execute(sql, user);
 
             //查
@@ -55,12 +63,18 @@ namespace demo02
                 throw ex;
             }
 
+        }
 
+        static void TestRepository()
+        {
             UserRepository userRepository = new UserRepository();
+
+            int userid = userRepository.Insert(new User { Id = 1, UserCode = "user004", UserName = "用户005", Password = "123" });
+            Console.WriteLine(userid);
+
+            User user = userRepository.SelectBy(1);
             //userRepository.SelectBy();
             //userRepository.SelectInfoBy<User>("");
-
-            Console.ReadKey();
         }
     }
 }

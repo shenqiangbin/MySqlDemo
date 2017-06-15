@@ -5,39 +5,49 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Dapper;
+using Util;
 
 namespace demo02
 {
+    /// <summary>
+    /// 适用
+    ///     表主键是列名id，且自增
+    ///     表示是否删除是列名status，且等于0时代表记录删除
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public abstract class MySqlBaseRepository<T> : IBaseRepository<T> where T : class
     {
-        public void Delete(T model)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Insert(T model)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerable<T> SelectBy(Dictionary<string, string> fields)
+        public int Insert(T model)
         {
             StringBuilder builder = new StringBuilder();
-            builder.Append("update AttachmentPack set ");
-            builder.Append(GetSqlByDic(destField, ","));
-            builder.Append(" where ");
-            builder.Append(GetSqlByDic(whereField, "and"));
+            builder.Append($"insert into {typeof(T).Name} (");
+            builder.Append(GetFieldsStr());
+            builder.Append(") values (");
+            builder.Append(GetFieldsWithParaStr());
+            builder.Append(" );");
+            builder.Append($"select max(id) from {typeof(T).Name};");
 
             string sql = builder.ToString();
+            var para = GetParas(model);
 
-            IEnumerable<T> models = GetConn().Query<T>($"select * from {typeof(T).Name} where");
-            return models;
+            return GetConn().ExecuteScalar<int>(sql, para);
         }
 
-        public T SelectBy(int Id)
+        //这个删除的缺点，没有记录是谁操作的。
+        public void Delete(int id)
         {
-            var model = GetConn().QueryFirstOrDefault<T>($"select * from {typeof(T).Name} where id = @id", new { Id = Id });
-            return model;
+            string sql = string.Format("update {0} set status = 0 where id = @id", typeof(T).Name);
+            GetConn().Execute(sql, new { id = id });
+        }
+
+        public void DeleteAll(IEnumerable<int> ids)
+        {
+            StringBuilder builder = new StringBuilder();
+            foreach (var id in ids)
+            {
+                builder.AppendFormat("update {0} set status = 0 where id = @id", typeof(T).Name);
+            }
+            throw new NotImplementedException();
         }
 
         public void Update(T model)
@@ -48,23 +58,88 @@ namespace demo02
         public void UpdateBy(Dictionary<string, string> destFields, Dictionary<string, string> whereFields)
         {
             StringBuilder builder = new StringBuilder();
-            builder.Append("update AttachmentPack set ");
-            builder.Append(GetSqlByDic(destField, ","));
+            builder.Append($"update {typeof(T).Name} set ");
+            builder.Append(DicHelper.ToSql(destFields, DicSeprator.Comma));
             builder.Append(" where ");
-            builder.Append(GetSqlByDic(whereField, "and"));
+            builder.Append(DicHelper.ToSqlWithPara(whereFields));
 
             string sql = builder.ToString();
+            var para = GetParas(whereFields);
 
+            GetConn().Execute(sql, para);
+        }
 
+        public T SelectBy(int Id)
+        {
+            string sql = $"select * from {typeof(T).Name} where id = @id";
+            var model = GetConn().QueryFirstOrDefault<T>(sql, new { id = Id });
+            return model;
+        }
 
+        public IEnumerable<T> SelectBy(Dictionary<string, string> fields)
+        {
+            //StringBuilder builder = new StringBuilder();
+            //builder.Append("update AttachmentPack set ");
+            //builder.Append(GetSqlByDic(destField, ","));
+            //builder.Append(" where ");
+            //builder.Append(GetSqlByDic(whereField, "and"));
+
+            //string sql = builder.ToString();
+
+            //IEnumerable<T> models = GetConn().Query<T>($"select * from {typeof(T).Name} where");
+            //return models;
+            throw new NotImplementedException();
+        }
+
+        #region 帮助方法
+
+        private string GetFieldsStr()
+        {
+            List<string> list = new List<string>();
+            foreach (var proper in typeof(T).GetProperties())
+            {
+                if (proper.Name.ToLower() != "id")
+                    list.Add(proper.Name);
+            }
+            return string.Join(",", list.ToArray());
+        }
+
+        private string GetFieldsWithParaStr()
+        {
+            List<string> list = new List<string>();
+            foreach (var proper in typeof(T).GetProperties())
+            {
+                if (proper.Name.ToLower() != "id")
+                    list.Add("@" + proper.Name);
+            }
+            return string.Join(",", list.ToArray());
+        }
+
+        private DynamicParameters GetParas(T model)
+        {
             DynamicParameters para = new DynamicParameters();
-            para.Add("@id", 123);
-            return GetConn().Execute(sql,para);
+            foreach (var proper in typeof(T).GetProperties())
+            {
+                var val = proper.GetValue(model);
+                para.Add("@" + proper.Name, val);
+            }
+            return para;
+        }
+
+        private DynamicParameters GetParas(Dictionary<string, string> whereFields)
+        {
+            DynamicParameters para = new DynamicParameters();
+            foreach (var item in whereFields)
+            {
+                para.Add($"@{item.Key}", item.Value);
+            }
+            return para;
         }
 
         private MySqlConnection GetConn()
         {
             string connStr = "server=192.168.103.90;database=thesismgmt;Uid=thesismgmt;Pwd=123456;";
+            connStr = "server=127.0.0.1;database=thesisdb;Uid=root;Pwd=123456;";
             MySqlConnection conn = new MySqlConnection(connStr);
             return conn;
         }
@@ -76,66 +151,7 @@ namespace demo02
             return list;
         }
 
-        private string GetSqlByDic(Dictionary<string, string> dic, string seprator)
-        {
-            List<string> list = new List<string>();
-            foreach (var item in dic)
-            {
-                list.Add(string.Format(" {0}='{1}' ", item.Key, item.Value));
-            }
-            return string.Join(seprator, list.ToArray());
-        }
-    }
+        #endregion
 
-    public class Column
-    {
-        public string ColumnName { get; set; }
-        public string ColumnComment { get; set; }
-        public string DataType { get; set; }
-
-        public override string ToString()
-        {
-            return $"{ColumnName.PadRight(20)}  {DataType.PadRight(20)}  {ColumnComment}  ";
-        }
-
-        public string GeneratePropertyString()
-        {
-            return string.Format("public {0} {1} {{ get; set; }}", GetDataTypeString(), ColumnName);
-        }
-
-        private string GetDataTypeString()
-        {
-            switch (DataType)
-            {
-                case "int":
-                    return "int";
-                case "datetime":
-                    return "DateTime";
-                case "varchar":
-                    return "string";
-                default:
-                    return "string";
-            }
-        }
-
-        public string GenerateSavePropertyString()
-        {
-            return string.Format("public {0} {1} {{ get; set; }}", GetSaveDataTypeString(), ColumnName);
-        }
-
-        private string GetSaveDataTypeString()
-        {
-            switch (DataType)
-            {
-                case "int":
-                    return "int?";
-                case "datetime":
-                    return "DateTime?";
-                case "varchar":
-                    return "string";
-                default:
-                    return "string";
-            }
-        }
     }
 }
