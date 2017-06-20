@@ -52,7 +52,16 @@ namespace demo02
 
         public void Update(T model)
         {
-            throw new NotImplementedException();
+            StringBuilder builder = new StringBuilder();
+            builder.Append($"update {typeof(T).Name} set ");
+            builder.Append(GetUpdateFields(model));
+            builder.Append(" where ");
+            builder.Append(" id = @id ");
+
+            string sql = builder.ToString();
+            var para = GetParas(model);
+
+            GetConn().Execute(sql, para);
         }
 
         public void UpdateBy(Dictionary<string, string> destFields, Dictionary<string, string> whereFields)
@@ -78,21 +87,21 @@ namespace demo02
 
         public IEnumerable<T> SelectBy(Dictionary<string, string> fields)
         {
-            //StringBuilder builder = new StringBuilder();
-            //builder.Append("update AttachmentPack set ");
-            //builder.Append(GetSqlByDic(destField, ","));
-            //builder.Append(" where ");
-            //builder.Append(GetSqlByDic(whereField, "and"));
+            StringBuilder builder = new StringBuilder();
+            builder.Append($"select * from {typeof(T).Name} ");
+            builder.Append(" where ");
+            builder.Append(DicHelper.ToSqlWithPara(fields));
 
-            //string sql = builder.ToString();
+            string sql = builder.ToString();
+            var para = GetParas(fields);
 
-            //IEnumerable<T> models = GetConn().Query<T>($"select * from {typeof(T).Name} where");
-            //return models;
-            throw new NotImplementedException();
+            IEnumerable<T> models = GetConn().Query<T>(sql, para);
+            return models;
         }
 
         #region 帮助方法
 
+        //Name,Sex,Mail
         private string GetFieldsStr()
         {
             List<string> list = new List<string>();
@@ -104,6 +113,7 @@ namespace demo02
             return string.Join(",", list.ToArray());
         }
 
+        //@Name,@Sex,@Mail
         private string GetFieldsWithParaStr()
         {
             List<string> list = new List<string>();
@@ -111,6 +121,18 @@ namespace demo02
             {
                 if (proper.Name.ToLower() != "id")
                     list.Add("@" + proper.Name);
+            }
+            return string.Join(",", list.ToArray());
+        }
+
+        //Name=@Name,Sex=@Sex,Mail=@Mail
+        private string GetUpdateFields(T model)
+        {
+            List<string> list = new List<string>();
+            foreach (var proper in typeof(T).GetProperties())
+            {
+                var val = proper.GetValue(model);
+                list.Add($"{proper.Name}=@{proper.Name}");
             }
             return string.Join(",", list.ToArray());
         }
