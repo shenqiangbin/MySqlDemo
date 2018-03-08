@@ -45,8 +45,8 @@ namespace MySqlDemo
             //    Console.WriteLine("用户新增失败");
 
             var success = AddUser("xiaoming4", "小明");
-            if(success)
-                Console.WriteLine("用户新增成功"); 
+            if (success)
+                Console.WriteLine("用户新增成功");
             else
                 Console.WriteLine("用户新增失败");
 
@@ -81,10 +81,17 @@ namespace MySqlDemo
         // 判断某个usercode是否存在 和 根据用户code获取用户的代码 可以合并的
         public static User GetByUserCode(string userCode)
         {
-            if(string.IsNullOrEmpty(userCode))
+            if (string.IsNullOrEmpty(userCode))
                 throw new Exception("userCode不能为空");
 
-            string sql = "";
+            DataTable dt = ExecuteDataTable("select * from user where usercode = " + userCode);
+            if (dt != null && dt.Rows.Count > 0)
+            {
+                User user = new User();
+                return user;
+            }
+
+            return null;
         }
 
 
