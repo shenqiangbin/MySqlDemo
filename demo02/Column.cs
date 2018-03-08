@@ -57,4 +57,10 @@ namespace demo02
             }
         }
     }
+
+    public class Table
+    {
+        public string TableName { get; set; }
+        public string TableComment { get; set; }
+    }
 }

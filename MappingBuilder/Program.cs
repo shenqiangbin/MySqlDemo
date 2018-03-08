@@ -116,8 +116,8 @@ namespace MappingBuilder
 
         static MySqlConnection GetConn()
         {
-            string connStr = "server=192.168.103.90;database=thesismgmt;Uid=thesismgmt;Pwd=123456;";
-            connStr = "server=127.0.0.1;database=thesisdb;Uid=root;Pwd=123456;";
+            string connStr = "server=192.168.103.90;database=ebookcreator;Uid=root;Pwd=123456;";
+            //connStr = "server=127.0.0.1;database=thesisdb;Uid=root;Pwd=123456;";
             MySqlConnection conn = new MySqlConnection(connStr);
             return conn;
         }
